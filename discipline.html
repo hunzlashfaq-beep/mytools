@@ -1,194 +1,205 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Discipline — Task Timer</title>
-<style>
-  :root{
-    --bg:#15140F;
-    --panel:#1B1A13;
-    --line:#33321F;
-    --text:#EDE7D8;
-    --muted:#8B8873;
-    --amber:#E8A33D;
-    --warn:#C8563C;
-    --done:#7C9473;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-    min-height:100vh;
-    padding:48px 24px 96px;
-  }
-  .wrap{max-width:640px;margin:0 auto;}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discipline — Task Timer</title>
+  <style>
+    :root{
+      --bg:#15140F;
+      --panel:#1B1A13;
+      --line:#33321F;
+      --text:#EDE7D8;
+      --muted:#8B8873;
+      --amber:#E8A33D;
+      --warn:#C8563C;
+      --done:#7C9473;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;}
+    body{
+      background:var(--bg);
+      color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+      min-height:100vh;
+      padding:48px 24px 96px;
+    }
+    .wrap{max-width:640px;margin:0 auto;}
 
-  /* header */
-  .head{
-    display:flex;
-    justify-content:space-between;
-    align-items:baseline;
-    border-bottom:1px solid var(--line);
-    padding-bottom:16px;
-    margin-bottom:32px;
-  }
-  .head h1{
-    font-size:20px;
-    font-weight:600;
-    letter-spacing:0.02em;
-    margin:0;
-  }
-  .head .tally{
-    font-size:13px;
-    color:var(--muted);
-    font-variant-numeric:tabular-nums;
-  }
-  .head .tally b{color:var(--amber);font-weight:600;}
+    .head{
+      display:flex;
+      justify-content:space-between;
+      align-items:baseline;
+      border-bottom:1px solid var(--line);
+      padding-bottom:16px;
+      margin-bottom:32px;
+    }
+    .head h1{
+      font-size:20px;
+      font-weight:600;
+      letter-spacing:0.02em;
+      margin:0;
+    }
+    .head .tally{
+      font-size:13px;
+      color:var(--muted);
+      font-variant-numeric:tabular-nums;
+    }
+    .head .tally b{color:var(--amber);font-weight:600;}
 
-  /* now running hero */
-  .hero{
-    display:none;
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-left:3px solid var(--amber);
-    padding:28px 24px;
-    margin-bottom:32px;
-  }
-  .hero.active{display:block;}
-  .hero.warning{border-left-color:var(--warn);}
-  .hero-label{
-    font-size:12px;
-    color:var(--muted);
-    margin-bottom:6px;
-  }
-  .hero-name{
-    font-size:17px;
-    margin-bottom:14px;
-    color:var(--text);
-  }
-  .hero-time{
-    font-family:"SF Mono","JetBrains Mono",Consolas,monospace;
-    font-variant-numeric:tabular-nums;
-    font-size:56px;
-    font-weight:600;
-    letter-spacing:0.02em;
-    color:var(--amber);
-    line-height:1;
-  }
-  .hero.warning .hero-time{color:var(--warn);}
-  .hero-controls{margin-top:18px;display:flex;gap:10px;}
+    .hero{
+      display:none;
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-left:3px solid var(--amber);
+      padding:28px 24px;
+      margin-bottom:32px;
+    }
+    .hero.active{display:block;}
+    .hero.warning{border-left-color:var(--warn);}
+    .hero-label{
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+    .hero-name{
+      font-size:17px;
+      margin-bottom:14px;
+      color:var(--text);
+    }
+    .hero-time{
+      font-family:"SF Mono","JetBrains Mono",Consolas,monospace;
+      font-variant-numeric:tabular-nums;
+      font-size:56px;
+      font-weight:600;
+      letter-spacing:0.02em;
+      color:var(--amber);
+      line-height:1;
+    }
+    .hero.warning .hero-time{color:var(--warn);}
+    .hero-controls{
+      margin-top:18px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
 
-  /* add task form */
-  .add-form{
-    display:flex;
-    gap:8px;
-    margin-bottom:32px;
-    flex-wrap:wrap;
-  }
-  .add-form input[type="text"]{
-    flex:1;
-    min-width:160px;
-  }
-  .add-form input,
-  .add-form select{
-    background:var(--panel);
-    border:1px solid var(--line);
-    color:var(--text);
-    padding:10px 12px;
-    font-size:14px;
-    font-family:inherit;
-  }
-  .add-form input:focus,
-  .add-form select:focus{
-    outline:none;
-    border-color:var(--amber);
-  }
-  .time-inputs{
-    display:flex;
-    align-items:center;
-    gap:4px;
-    background:var(--panel);
-    border:1px solid var(--line);
-    padding:0 8px;
-  }
-  .time-inputs input{
-    background:transparent;
-    border:none;
-    width:38px;
-    text-align:center;
-    padding:10px 0;
-    font-variant-numeric:tabular-nums;
-  }
-  .time-inputs input:focus{outline:none;}
-  .time-inputs span{color:var(--muted);font-size:13px;}
+    .add-form{
+      display:flex;
+      gap:8px;
+      margin-bottom:32px;
+      flex-wrap:wrap;
+    }
+    .add-form input[type="text"]{
+      flex:1;
+      min-width:160px;
+    }
+    .add-form input,
+    .add-form select{
+      background:var(--panel);
+      border:1px solid var(--line);
+      color:var(--text);
+      padding:10px 12px;
+      font-size:14px;
+      font-family:inherit;
+    }
+    .add-form input:focus,
+    .add-form select:focus{
+      outline:none;
+      border-color:var(--amber);
+    }
+    .time-inputs{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      background:var(--panel);
+      border:1px solid var(--line);
+      padding:0 8px;
+    }
+    .time-inputs input{
+      background:transparent;
+      border:none;
+      width:38px;
+      text-align:center;
+      padding:10px 0;
+      font-variant-numeric:tabular-nums;
+    }
+    .time-inputs input:focus{outline:none;}
+    .time-inputs span{color:var(--muted);font-size:13px;}
 
-  button{
-    font-family:inherit;
-    font-size:13px;
-    cursor:pointer;
-    border:1px solid var(--line);
-    background:transparent;
-    color:var(--text);
-    padding:10px 16px;
-    transition:border-color .15s ease, color .15s ease;
-  }
-  button:hover{border-color:var(--amber);}
-  button.primary{
-    background:var(--amber);
-    border-color:var(--amber);
-    color:#15140F;
-    font-weight:600;
-  }
-  button.primary:hover{opacity:0.9;}
-  button.ghost{color:var(--muted);border-color:transparent;padding:10px 8px;}
-  button.ghost:hover{color:var(--warn);border-color:transparent;}
-  button.small{padding:7px 12px;font-size:12px;}
+    button{
+      font-family:inherit;
+      font-size:13px;
+      cursor:pointer;
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--text);
+      padding:10px 16px;
+      transition:border-color .15s ease, color .15s ease;
+    }
+    button:hover{border-color:var(--amber);}
+    button.primary{
+      background:var(--amber);
+      border-color:var(--amber);
+      color:#15140F;
+      font-weight:600;
+    }
+    button.primary:hover{opacity:0.9;}
+    button.ghost{color:var(--muted);border-color:transparent;padding:10px 8px;}
+    button.ghost:hover{color:var(--warn);border-color:transparent;}
+    button.small{padding:7px 12px;font-size:12px;}
+    button.done-btn{background:var(--done);border-color:var(--done);color:#15140F;}
+    button.done-btn:hover{opacity:0.85;}
+    .task-extra{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
 
-  /* queue */
-  .queue-label{
-    font-size:12px;
-    color:var(--muted);
-    margin-bottom:10px;
-  }
-  .task-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    padding:16px 0;
-    border-bottom:1px solid var(--line);
-  }
-  .task-row.done{opacity:0.45;}
-  .task-main{flex:1;min-width:0;}
-  .task-name{
-    font-size:15px;
-    margin-bottom:4px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .task-row.done .task-name{text-decoration:line-through;}
-  .task-meta{
-    font-size:12px;
-    color:var(--muted);
-    font-variant-numeric:tabular-nums;
-  }
-  .task-meta.is-active{color:var(--amber);}
-  .task-actions{display:flex;gap:6px;flex-shrink:0;}
+    .queue-label{
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:10px;
+    }
+    .task-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:16px 0;
+      border-bottom:1px solid var(--line);
+      flex-wrap:wrap;
+    }
+    .task-row.done{opacity:0.45;}
+    .task-main{flex:1;min-width:120px;}
+    .task-name{
+      font-size:15px;
+      margin-bottom:4px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .task-row.done .task-name{text-decoration:line-through;}
+    .task-meta{
+      font-size:12px;
+      color:var(--muted);
+      font-variant-numeric:tabular-nums;
+    }
+    .task-meta.is-active{color:var(--amber);}
+    .task-actions{
+      display:flex;
+      gap:6px;
+      flex-shrink:0;
+      flex-wrap:wrap;
+      align-items:center;
+    }
 
-  .empty{
-    color:var(--muted);
-    font-size:14px;
-    padding:24px 0;
-    text-align:center;
-    border:1px dashed var(--line);
-  }
+    .empty{
+      color:var(--muted);
+      font-size:14px;
+      padding:24px 0;
+      text-align:center;
+      border:1px dashed var(--line);
+    }
 
-  ::selection{background:var(--amber);color:#15140F;}
-</style>
+    ::selection{background:var(--amber);color:#15140F;}
+  </style>
 </head>
 <body>
 <div class="wrap">
@@ -205,6 +216,8 @@
     <div class="hero-controls">
       <button class="small" id="pauseBtn">Pause</button>
       <button class="small ghost" id="resetActiveBtn">Reset</button>
+      <button class="small" id="addFiveBtn">+5 min</button>
+      <span id="extraCounter" style="font-size:12px;color:var(--muted);margin-left:4px;"></span>
     </div>
   </div>
 
@@ -233,6 +246,8 @@
   let tasks = [];
   let activeId = null;
   let intervalHandle = null;
+  // track extra minutes added (per active task)
+  let extraMinutesUsed = 0;     // reset when task changes
 
   const el = {
     hero: document.getElementById('hero'),
@@ -240,6 +255,8 @@
     heroTime: document.getElementById('heroTime'),
     pauseBtn: document.getElementById('pauseBtn'),
     resetActiveBtn: document.getElementById('resetActiveBtn'),
+    addFiveBtn: document.getElementById('addFiveBtn'),
+    extraCounter: document.getElementById('extraCounter'),
     addForm: document.getElementById('addForm'),
     taskName: document.getElementById('taskName'),
     taskMin: document.getElementById('taskMin'),
@@ -249,7 +266,7 @@
     doneCount: document.getElementById('doneCount'),
   };
 
-  // --- persistence, with a daily reset of the "completed" tally ---
+  // --- persistence & daily reset ---
   function todayStr(){
     const d = new Date();
     return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
@@ -260,7 +277,6 @@
     const raw = localStorage.getItem(STORAGE_KEY);
     tasks = raw ? JSON.parse(raw) : [];
     if (savedDate !== todayStr()){
-      // new day: keep the task list (recurring routine) but reset progress
       tasks = tasks.map(t => ({...t, remaining: t.total, done:false, warned:false, halfwayAnnounced:false}));
       localStorage.setItem(DATE_KEY, todayStr());
       save();
@@ -271,7 +287,7 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   }
 
-  // --- sound (Web Audio API, no external files) ---
+  // --- sound ---
   let audioCtx = null;
   function ctx(){
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -295,9 +311,7 @@
     beep(660, 0.15, 0.25);
   }
   function playCompleteSound(){
-    // A repeating chime pattern that spans roughly 5 seconds, so it's
-    // impossible to miss even if you've stepped away from the laptop.
-    const pattern = [523, 659, 784]; // a simple rising triad, repeated
+    const pattern = [523, 659, 784];
     const totalDuration = 5.2;
     const cycleLength = 0.55;
     let t = 0;
@@ -309,7 +323,7 @@
     }
   }
 
-  // --- voice announcement (Web Speech API) ---
+  // --- speech ---
   let cachedVoices = [];
   function loadVoices(){
     cachedVoices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
@@ -322,7 +336,6 @@
     if (!cachedVoices.length) return null;
     const englishVoices = cachedVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
     const pool = englishVoices.length ? englishVoices : cachedVoices;
-    // common male-voice name hints across Chrome/Edge/Safari voice packs
     const maleHints = ['male','david','mark','daniel','alex','fred','tom','james','george','ryan'];
     let match = pool.find(v => maleHints.some(h => v.name.toLowerCase().includes(h)));
     return match || pool[0];
@@ -332,10 +345,10 @@
     const utter = new SpeechSynthesisUtterance(text);
     const voice = pickMaleVoice();
     if (voice) utter.voice = voice;
-    utter.pitch = 0.8;   // deepen slightly for a male tone even on default voices
+    utter.pitch = 0.8;
     utter.rate = 1;
     utter.volume = 1;
-    window.speechSynthesis.cancel(); // avoid overlapping announcements
+    window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utter);
   }
   function playHalfwaySound(taskName){
@@ -350,18 +363,23 @@
     return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
   }
 
-  // --- rendering ---
+  // --- render ---
   function render(){
-    // hero
     const active = tasks.find(t => t.id === activeId);
+
+    // hero
     if (active){
       el.hero.classList.add('active');
       el.hero.classList.toggle('warning', active.remaining <= 300 && active.remaining > 0);
       el.heroName.textContent = active.name;
       el.heroTime.textContent = fmt(active.remaining);
       el.pauseBtn.textContent = active.running ? 'Pause' : 'Resume';
+      // extra minutes counter
+      const used = active.extraMinutesAdded || 0;
+      el.extraCounter.textContent = used >= 15 ? 'max +15 min' : (used > 0 ? `+${used} min` : '');
     } else {
       el.hero.classList.remove('active','warning');
+      el.extraCounter.textContent = '';
     }
 
     // list
@@ -379,9 +397,11 @@
       name.textContent = t.name;
       const meta = document.createElement('div');
       meta.className = 'task-meta' + (t.id === activeId ? ' is-active' : '');
-      meta.textContent = t.done
-        ? 'Done · ' + fmt(t.total) + ' allotted'
-        : fmt(t.remaining) + ' remaining of ' + fmt(t.total);
+      if (t.done) {
+        meta.textContent = `Done ✅ · saved ${fmt(t.total - t.remaining)}`;
+      } else {
+        meta.textContent = fmt(t.remaining) + ' remaining of ' + fmt(t.total);
+      }
       main.appendChild(name);
       main.appendChild(meta);
 
@@ -389,11 +409,28 @@
       actions.className = 'task-actions';
 
       if (!t.done){
+        // start button
         const startBtn = document.createElement('button');
         startBtn.className = 'small' + (t.id === activeId ? ' primary' : '');
         startBtn.textContent = t.id === activeId ? (t.running ? 'Running' : 'Resume') : 'Start';
         startBtn.onclick = () => startTask(t.id);
         actions.appendChild(startBtn);
+
+        // "Done" button: mark as complete, save time
+        const doneBtn = document.createElement('button');
+        doneBtn.className = 'small done-btn';
+        doneBtn.textContent = '✔ Done';
+        doneBtn.onclick = () => completeTask(t.id);
+        actions.appendChild(doneBtn);
+
+        // +5 min (only for active task)
+        if (t.id === activeId && active) {
+          const addBtn = document.createElement('button');
+          addBtn.className = 'small';
+          addBtn.textContent = '+5m';
+          addBtn.onclick = () => addFiveMinutes(t.id);
+          actions.appendChild(addBtn);
+        }
       }
 
       const resetBtn = document.createElement('button');
@@ -442,6 +479,7 @@
       stopInterval();
       playCompleteSound();
       activeId = null;
+      extraMinutesUsed = 0;
     }
 
     render();
@@ -456,10 +494,13 @@
   }
 
   function startTask(id){
-    // pause whatever else is running
     tasks.forEach(t => { if (t.id !== id) t.running = false; });
     const t = tasks.find(x => x.id === id);
     if (!t || t.done) return;
+    // reset extra minutes counter when switching task
+    if (activeId !== id) {
+      extraMinutesUsed = 0;
+    }
     t.running = true;
     activeId = id;
     startInterval();
@@ -481,13 +522,59 @@
     t.done = false;
     t.warned = false;
     t.halfwayAnnounced = false;
-    if (t.id === activeId){ t.running = false; stopInterval(); activeId = null; }
+    t.extraMinutesAdded = 0;
+    if (t.id === activeId){ t.running = false; stopInterval(); activeId = null; extraMinutesUsed = 0; }
     render();
   }
 
   function deleteTask(id){
-    if (id === activeId){ stopInterval(); activeId = null; }
+    if (id === activeId){ stopInterval(); activeId = null; extraMinutesUsed = 0; }
     tasks = tasks.filter(t => t.id !== id);
+    render();
+  }
+
+  // --- complete task (done) ---
+  function completeTask(id){
+    const t = tasks.find(x => x.id === id);
+    if (!t || t.done) return;
+    t.done = true;
+    t.running = false;
+    if (t.id === activeId) {
+      stopInterval();
+      activeId = null;
+      extraMinutesUsed = 0;
+    }
+    // speech: announce saved time
+    const saved = t.total - t.remaining;
+    const savedMin = Math.floor(saved / 60);
+    const savedSec = saved % 60;
+    let msg = `Task ${t.name} completed. You saved `;
+    if (savedMin > 0) msg += `${savedMin} minute${savedMin>1?'s':''} `;
+    if (savedSec > 0) msg += `${savedSec} second${savedSec>1?'s':''}`;
+    msg += '. Well done.';
+    speak(msg);
+    render();
+  }
+
+  // --- +5 minutes (max +15 total per task) ---
+  function addFiveMinutes(id){
+    const t = tasks.find(x => x.id === id);
+    if (!t || t.done) return;
+    if (t.id !== activeId) return; // only for active task
+    const used = t.extraMinutesAdded || 0;
+    if (used >= 15) {
+      speak('Maximum extra time reached. You cannot add more than 15 minutes.');
+      return;
+    }
+    const add = 5;
+    const newUsed = Math.min(used + add, 15);
+    const actualAdd = newUsed - used;
+    t.remaining += actualAdd * 60;
+    t.total += actualAdd * 60;
+    t.extraMinutesAdded = newUsed;
+    extraMinutesUsed = newUsed;
+    // speech feedback
+    speak(`Added ${actualAdd} minutes. Total extra ${newUsed} minutes.`);
     render();
   }
 
@@ -508,7 +595,8 @@
       running: false,
       done: false,
       warned: false,
-      halfwayAnnounced: false
+      halfwayAnnounced: false,
+      extraMinutesAdded: 0
     });
 
     el.taskName.value = '';
@@ -516,17 +604,23 @@
     render();
   });
 
+  // --- hero controls ---
   el.pauseBtn.addEventListener('click', togglePauseActive);
   el.resetActiveBtn.addEventListener('click', function(){
     if (activeId) resetTask(activeId);
   });
+  el.addFiveBtn.addEventListener('click', function(){
+    if (activeId) addFiveMinutes(activeId);
+  });
 
-  // resume ticking on load if a task was mid-run
+  // --- init ---
   load();
   const wasRunning = tasks.find(t => t.running);
   if (wasRunning){
     activeId = wasRunning.id;
     startInterval();
+    // restore extra counter
+    extraMinutesUsed = wasRunning.extraMinutesAdded || 0;
   }
   render();
 })();
