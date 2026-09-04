@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home — My Tools</title>
+<style>
+  :root{
+    --bg:#15140F;
+    --panel:#1B1A13;
+    --line:#33321F;
+    --text:#EDE7D8;
+    --muted:#8B8873;
+    --amber:#E8A33D;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    padding:48px 24px 96px;
+  }
+  .wrap{max-width:720px;margin:0 auto;}
+
+  .head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:1px solid var(--line);
+    padding-bottom:16px;
+    margin-bottom:8px;
+  }
+  .head h1{
+    font-size:20px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    margin:0;
+  }
+  .head .clock{
+    font-size:13px;
+    color:var(--muted);
+    font-variant-numeric:tabular-nums;
+    font-family:"SF Mono","JetBrains Mono",Consolas,monospace;
+  }
+
+  .subline{
+    font-size:13px;
+    color:var(--muted);
+    margin:14px 0 32px;
+  }
+
+  .search{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:12px 14px;
+    font-size:14px;
+    font-family:inherit;
+    margin-bottom:32px;
+  }
+  .search:focus{outline:none;border-color:var(--amber);}
+  .search::placeholder{color:var(--muted);}
+
+  .section-label{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:10px;
+  }
+
+  .tool-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:18px 4px;
+    border-bottom:1px solid var(--line);
+    text-decoration:none;
+    color:inherit;
+    transition:border-color .15s ease;
+  }
+  .tool-row:hover{border-bottom-color:var(--amber);}
+  .tool-row:hover .tool-name{color:var(--amber);}
+  .tool-row:hover .tool-open{color:var(--amber);}
+
+  .tool-main{flex:1;min-width:0;}
+  .tool-name{
+    font-size:16px;
+    font-weight:600;
+    margin-bottom:4px;
+    transition:color .15s ease;
+  }
+  .tool-desc{
+    font-size:13px;
+    color:var(--muted);
+    line-height:1.5;
+  }
+  .tool-tag{
+    font-size:11px;
+    color:var(--muted);
+    border:1px solid var(--line);
+    padding:3px 8px;
+    white-space:nowrap;
+    margin-left:12px;
+    flex-shrink:0;
+  }
+  .tool-open{
+    font-size:13px;
+    color:var(--muted);
+    flex-shrink:0;
+    transition:color .15s ease;
+  }
+
+  .empty{
+    color:var(--muted);
+    font-size:14px;
+    padding:40px 0;
+    text-align:center;
+    border:1px dashed var(--line);
+  }
+
+  .foot{
+    margin-top:40px;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .foot code{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:1px 6px;
+    color:var(--text);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <h1>My Tools</h1>
+    <div class="clock" id="clock">--:--</div>
+  </div>
+  <div class="subline">A single place to launch everything you use daily.</div>
+
+  <input class="search" id="search" type="text" placeholder="Search tools…">
+
+  <div class="section-label">All tools</div>
+  <div id="toolList"></div>
+  <div class="empty" id="emptyState" style="display:none;">No tools match that search.</div>
+
+  <div class="foot">
+    To add a new tool, open this file and add an entry to the <code>TOOLS</code> list near the bottom of the script.
+  </div>
+
+</div>
+
+<script>
+  // ---------------------------------------------------------------
+  // Add your tools here. Each entry needs:
+  //   name  – shown as the title
+  //   desc  – one line describing what it does
+  //   url   – path to the tool's HTML file (same folder, or a full link)
+  //   tag   – short category label shown on the right (optional)
+  // Keep this file and your tool files (e.g. discipline.html) in the
+  // same folder so the relative links below work.
+  // ---------------------------------------------------------------
+  const TOOLS = [
+    {
+      name: "Discipline",
+      desc: "Daily task list with per-task countdown timers, a 50% voice check-in, and a 5-minute warning before time runs out.",
+      url: "discipline.html",
+      tag: "Productivity"
+    },
+    {
+      name: "Domain Extractor",
+      desc: "Extract domain name from junk text.",
+      url: "domain-extractor.html",
+      tag: "Quick Tool"
+    },
+    {
+      name: "Tool 3",
+      desc: "Delete this row if you don't need it yet, or fill it in when ready.",
+      url: "#",
+      tag: "Draft"
+    }
+  ];
+
+  const listEl = document.getElementById('toolList');
+  const emptyEl = document.getElementById('emptyState');
+  const searchEl = document.getElementById('search');
+
+  function render(filter){
+    const q = (filter || '').trim().toLowerCase();
+    const filtered = TOOLS.filter(t =>
+      t.name.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q)
+    );
+
+    listEl.innerHTML = '';
+    emptyEl.style.display = filtered.length ? 'none' : 'block';
+
+    filtered.forEach(t => {
+      const row = document.createElement('a');
+      row.className = 'tool-row';
+      row.href = t.url;
+
+      const main = document.createElement('div');
+      main.className = 'tool-main';
+      const name = document.createElement('div');
+      name.className = 'tool-name';
+      name.textContent = t.name;
+      const desc = document.createElement('div');
+      desc.className = 'tool-desc';
+      desc.textContent = t.desc;
+      main.appendChild(name);
+      main.appendChild(desc);
+
+      row.appendChild(main);
+
+      if (t.tag){
+        const tag = document.createElement('div');
+        tag.className = 'tool-tag';
+        tag.textContent = t.tag;
+        row.appendChild(tag);
+      }
+
+      const open = document.createElement('div');
+      open.className = 'tool-open';
+      open.textContent = 'Open';
+      row.appendChild(open);
+
+      listEl.appendChild(row);
+    });
+  }
+
+  searchEl.addEventListener('input', () => render(searchEl.value));
+  render('');
+
+  // small live clock, just to make the home page feel alive
+  function tickClock(){
+    const d = new Date();
+    const h = String(d.getHours()).padStart(2,'0');
+    const m = String(d.getMinutes()).padStart(2,'0');
+    document.getElementById('clock').textContent = h + ':' + m;
+  }
+  tickClock();
+  setInterval(tickClock, 1000 * 15);
+</script>
+</body>
+</html>
