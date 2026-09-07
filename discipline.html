@@ -308,6 +308,8 @@
   let timerRunning = false;
   let isDragging = false;
   let draggedId = null;
+  let notificationQueue = [];
+  let isProcessingNotifications = false;
 
   const el = {
     hero: document.getElementById('hero'),
@@ -408,15 +410,28 @@
     }
   }
 
-  // --- sound ---
+  // --- sound with background support ---
   let audioCtx = null;
-  function ctx(){
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    return audioCtx;
+  function ensureAudioContext(){
+    try {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      // Resume if suspended (browser suspends audio in background)
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    } catch(e) {
+      return null;
+    }
   }
+
   function beep(freq, duration, delay, gainVal){
     try {
-      const c = ctx();
+      const c = ensureAudioContext();
+      if (!c) return;
+      
       const osc = c.createOscillator();
       const gain = c.createGain();
       osc.type = 'sine';
@@ -427,12 +442,30 @@
       const startAt = c.currentTime + (delay || 0);
       osc.start(startAt);
       osc.stop(startAt + duration);
-    } catch(e) {}
+    } catch(e) {
+      // Fallback: try to play using Web Audio with user gesture
+      try {
+        const c = ensureAudioContext();
+        if (c && c.state === 'running') {
+          const osc = c.createOscillator();
+          const gain = c.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.value = gainVal || 0.15;
+          osc.connect(gain);
+          gain.connect(c.destination);
+          osc.start(c.currentTime + (delay || 0));
+          osc.stop(c.currentTime + (delay || 0) + duration);
+        }
+      } catch(e2) {}
+    }
   }
+
   function playWarningSound(){
     beep(660, 0.15, 0);
     beep(660, 0.15, 0.25);
   }
+
   function playCompleteSound(){
     const pattern = [523, 659, 784];
     const totalDuration = 5.2;
@@ -446,15 +479,21 @@
     }
   }
 
-  // --- speech ---
+  // --- speech with background support ---
+  let speechSynthesis = window.speechSynthesis;
   let cachedVoices = [];
+
   function loadVoices(){
-    cachedVoices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    if (speechSynthesis) {
+      cachedVoices = speechSynthesis.getVoices() || [];
+    }
   }
-  if (window.speechSynthesis){
+
+  if (speechSynthesis){
     loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+    speechSynthesis.onvoiceschanged = loadVoices;
   }
+
   function pickMaleVoice(){
     if (!cachedVoices.length) return null;
     const englishVoices = cachedVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
@@ -463,8 +502,15 @@
     let match = pool.find(v => maleHints.some(h => v.name.toLowerCase().includes(h)));
     return match || pool[0];
   }
+
   function speak(text){
-    if (!window.speechSynthesis) return;
+    if (!speechSynthesis) return;
+    
+    // Cancel any ongoing speech
+    try {
+      speechSynthesis.cancel();
+    } catch(e) {}
+    
     try {
       const utter = new SpeechSynthesisUtterance(text);
       const voice = pickMaleVoice();
@@ -472,12 +518,55 @@
       utter.pitch = 0.8;
       utter.rate = 1;
       utter.volume = 1;
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utter);
+      
+      // Try to speak - this works even in background
+      speechSynthesis.speak(utter);
     } catch(e) {}
   }
+
   function playHalfwaySound(taskName){
     speak('50% of time reached. Make sure to complete ' + taskName + ' within your deadline time.');
+  }
+
+  // --- Notification queue system ---
+  function queueNotification(type, data){
+    notificationQueue.push({ type, data, timestamp: Date.now() });
+    processNotificationQueue();
+  }
+
+  function processNotificationQueue(){
+    if (isProcessingNotifications || notificationQueue.length === 0) return;
+    
+    isProcessingNotifications = true;
+    
+    // Process all queued notifications
+    const queue = [...notificationQueue];
+    notificationQueue = [];
+    
+    queue.forEach(item => {
+      switch(item.type) {
+        case 'warning':
+          playWarningSound();
+          break;
+        case 'halfway':
+          playHalfwaySound(item.data.taskName);
+          break;
+        case 'complete':
+          playCompleteSound();
+          speak(`Task ${item.data.taskName} completed! Well done.`);
+          break;
+        case 'saved':
+          speak(item.data.message);
+          break;
+      }
+    });
+    
+    isProcessingNotifications = false;
+    
+    // Process any new notifications that came in while processing
+    if (notificationQueue.length > 0) {
+      processNotificationQueue();
+    }
   }
 
   // --- formatting ---
@@ -517,8 +606,8 @@
       t.done = true;
       timerRunning = false;
       stopInterval();
-      playCompleteSound();
-      speak(`Task ${t.name} completed! Well done.`);
+      // Queue completion notification
+      queueNotification('complete', { taskName: t.name });
       activeId = null;
       extraMinutesUsed = 0;
     }
@@ -532,13 +621,13 @@
     // Check halfway (we crossed the halfway point)
     if (oldRemaining > halfway && newRemaining <= halfway && halfway > 0 && !t.halfwayAnnounced) {
       t.halfwayAnnounced = true;
-      playHalfwaySound(t.name);
+      queueNotification('halfway', { taskName: t.name });
     }
 
     // Check 5-minute warning (we crossed 5 minutes)
     if (oldRemaining > 300 && newRemaining <= 300 && !t.warned) {
       t.warned = true;
-      playWarningSound();
+      queueNotification('warning', {});
     }
   }
 
@@ -870,7 +959,9 @@
     if (savedMin > 0) msg += `${savedMin} minute${savedMin>1?'s':''} `;
     if (savedSec > 0) msg += `${savedSec} second${savedSec>1?'s':''}`;
     msg += '. Well done.';
-    speak(msg);
+    
+    // Queue the saved message
+    queueNotification('saved', { message: msg });
     render();
   }
 
@@ -943,6 +1034,14 @@
         processTimer();
       }
     }
+  });
+
+  // --- User interaction to resume audio context ---
+  document.addEventListener('click', function() {
+    ensureAudioContext();
+  });
+  document.addEventListener('touchstart', function() {
+    ensureAudioContext();
   });
 
   // --- init ---
