@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Discipline — Task Timer</title>
+  <!-- Favicon using SVG data URI -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='5' y='5' width='90' height='90' rx='12' fill='%2315140F' stroke='%23E8A33D' stroke-width='3'/%3E%3Ctext x='50' y='68' font-family='Arial, sans-serif' font-size='48' font-weight='bold' fill='%23E8A33D' text-anchor='middle'%3E⏱%3C/text%3E%3C/svg%3E">
+  <!-- Fallback PNG favicon for older browsers -->
+  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAABOUlEQVR4nO3bsUoDQRAG4I8r01hZWIh9EAsfIj7CTTCNBbKFhVj7BqKQ5zB5j3toGyIEFMLG4Bty7SXwE0+TJf9abpjdud2dGe6DE7a2tra2trb+hz6PZEdr3iQ/0jV9ki2ty5LvlNND8tH9q1u6tpsnuZM9XacvQ1LhTubU7mpcl0mFm92sK1+FTbtUkzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzAMwzC899NENW4qkl9pI9+55//laT3Rxf9sHbXxsJ+dn+mvyXs0hWEYhmEYxkl/ABU/1md8/TJbAAAAAElFTkSuQmCC">
   <style>
     :root{
       --bg:#15140F;
@@ -14,6 +18,7 @@
       --amber:#E8A33D;
       --warn:#C8563C;
       --done:#7C9473;
+      --drag-handle:#55503A;
     }
     *{box-sizing:border-box;}
     html,body{margin:0;padding:0;}
@@ -33,6 +38,8 @@
       border-bottom:1px solid var(--line);
       padding-bottom:16px;
       margin-bottom:32px;
+      flex-wrap:wrap;
+      gap:8px;
     }
     .head h1{
       font-size:20px;
@@ -40,12 +47,16 @@
       letter-spacing:0.02em;
       margin:0;
     }
-    .head .tally{
+    .head .stats{
+      display:flex;
+      gap:16px;
       font-size:13px;
       color:var(--muted);
       font-variant-numeric:tabular-nums;
+      flex-wrap:wrap;
     }
-    .head .tally b{color:var(--amber);font-weight:600;}
+    .head .stats b{color:var(--amber);font-weight:600;}
+    .head .stats .saved-time b{color:var(--done);}
 
     .hero{
       display:none;
@@ -165,9 +176,45 @@
       padding:16px 0;
       border-bottom:1px solid var(--line);
       flex-wrap:wrap;
+      cursor:grab;
+      transition:background 0.2s, opacity 0.2s;
+      position:relative;
     }
-    .task-row.done{opacity:0.45;}
-    .task-main{flex:1;min-width:120px;}
+    .task-row:active{cursor:grabbing;}
+    .task-row.dragging{
+      opacity:0.4;
+      background:var(--panel);
+      border:2px solid var(--amber);
+    }
+    .task-row.drag-over{
+      border-bottom:2px solid var(--amber);
+    }
+    .task-row.done{
+      opacity:0.5;
+      cursor:default;
+    }
+    .task-row.done .drag-handle{
+      opacity:0.2;
+      cursor:default;
+    }
+    .task-main{
+      flex:1;
+      min-width:120px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .drag-handle{
+      color:var(--drag-handle);
+      font-size:18px;
+      cursor:grab;
+      user-select:none;
+      padding:0 4px;
+      flex-shrink:0;
+      line-height:1;
+    }
+    .drag-handle:active{cursor:grabbing;}
+    .task-row.done .drag-handle{color:var(--line);}
     .task-name{
       font-size:15px;
       margin-bottom:4px;
@@ -189,6 +236,12 @@
       flex-wrap:wrap;
       align-items:center;
     }
+    .task-content{
+      display:flex;
+      flex-direction:column;
+      flex:1;
+      min-width:0;
+    }
 
     .empty{
       color:var(--muted);
@@ -206,7 +259,10 @@
 
   <div class="head">
     <h1>Discipline</h1>
-    <div class="tally"><b id="doneCount">0</b> completed today</div>
+    <div class="stats">
+      <span class="completed-count"><b id="doneCount">0</b> completed today</span>
+      <span class="saved-time">⏱ saved <b id="savedTime">0s</b></span>
+    </div>
   </div>
 
   <div class="hero" id="hero">
@@ -232,7 +288,7 @@
     <button type="submit" class="primary">Add task</button>
   </form>
 
-  <div class="queue-label">Today's queue</div>
+  <div class="queue-label">Today's queue <span style="color:var(--muted);font-weight:normal;">(drag to reorder)</span></div>
   <div id="taskList"></div>
   <div class="empty" id="emptyState" style="display:none;">No tasks yet. Add one above and hit Start.</div>
 
@@ -240,14 +296,18 @@
 
 <script>
 (function(){
-  const STORAGE_KEY = 'discipline_tasks_v1';
-  const DATE_KEY = 'discipline_date_v1';
+  const STORAGE_KEY = 'discipline_tasks_v2';
+  const DATE_KEY = 'discipline_date_v2';
+  const ORDER_KEY = 'discipline_order_v2';
 
   let tasks = [];
   let activeId = null;
   let intervalHandle = null;
-  // track extra minutes added (per active task)
-  let extraMinutesUsed = 0;     // reset when task changes
+  let extraMinutesUsed = 0;
+  let lastTickTime = null;
+  let timerRunning = false;
+  let isDragging = false;
+  let draggedId = null;
 
   const el = {
     hero: document.getElementById('hero'),
@@ -264,6 +324,7 @@
     taskList: document.getElementById('taskList'),
     emptyState: document.getElementById('emptyState'),
     doneCount: document.getElementById('doneCount'),
+    savedTime: document.getElementById('savedTime'),
   };
 
   // --- persistence & daily reset ---
@@ -281,10 +342,70 @@
       localStorage.setItem(DATE_KEY, todayStr());
       save();
     }
+    // Load order if exists
+    const orderRaw = localStorage.getItem(ORDER_KEY);
+    if (orderRaw) {
+      const order = JSON.parse(orderRaw);
+      tasks.forEach(t => {
+        if (order[t.id] !== undefined) {
+          t.order = order[t.id];
+        }
+      });
+    }
+    // Ensure all tasks have order
+    tasks.forEach((t, i) => {
+      if (t.order === undefined) t.order = i;
+    });
   }
 
   function save(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    // Save order
+    const order = {};
+    tasks.forEach(t => { order[t.id] = t.order; });
+    localStorage.setItem(ORDER_KEY, JSON.stringify(order));
+  }
+
+  // --- sort tasks: active on top, then by order, completed at bottom ---
+  function getSortedTasks(){
+    const active = tasks.find(t => t.id === activeId && !t.done);
+    const sorted = [...tasks].sort((a, b) => {
+      // Active task always first
+      if (a.id === activeId && !a.done) return -1;
+      if (b.id === activeId && !b.done) return 1;
+      // Completed tasks go to the bottom
+      if (a.done && !b.done) return 1;
+      if (!a.done && b.done) return -1;
+      // Then by order
+      return (a.order || 0) - (b.order || 0);
+    });
+    return sorted;
+  }
+
+  // --- calculate total saved time ---
+  function getTotalSavedTime(){
+    return tasks.reduce((total, t) => {
+      if (t.done) {
+        return total + Math.max(0, t.total - t.remaining);
+      }
+      return total;
+    }, 0);
+  }
+
+  // --- format time for display ---
+  function formatTime(seconds){
+    seconds = Math.round(seconds);
+    if (seconds < 60) {
+      return `${seconds}s`;
+    } else if (seconds < 3600) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+    } else {
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    }
   }
 
   // --- sound ---
@@ -294,17 +415,19 @@
     return audioCtx;
   }
   function beep(freq, duration, delay, gainVal){
-    const c = ctx();
-    const osc = c.createOscillator();
-    const gain = c.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    gain.gain.value = gainVal || 0.15;
-    osc.connect(gain);
-    gain.connect(c.destination);
-    const startAt = c.currentTime + (delay || 0);
-    osc.start(startAt);
-    osc.stop(startAt + duration);
+    try {
+      const c = ctx();
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.value = gainVal || 0.15;
+      osc.connect(gain);
+      gain.connect(c.destination);
+      const startAt = c.currentTime + (delay || 0);
+      osc.start(startAt);
+      osc.stop(startAt + duration);
+    } catch(e) {}
   }
   function playWarningSound(){
     beep(660, 0.15, 0);
@@ -342,14 +465,16 @@
   }
   function speak(text){
     if (!window.speechSynthesis) return;
-    const utter = new SpeechSynthesisUtterance(text);
-    const voice = pickMaleVoice();
-    if (voice) utter.voice = voice;
-    utter.pitch = 0.8;
-    utter.rate = 1;
-    utter.volume = 1;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utter);
+    try {
+      const utter = new SpeechSynthesisUtterance(text);
+      const voice = pickMaleVoice();
+      if (voice) utter.voice = voice;
+      utter.pitch = 0.8;
+      utter.rate = 1;
+      utter.volume = 1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    } catch(e) {}
   }
   function playHalfwaySound(taskName){
     speak('50% of time reached. Make sure to complete ' + taskName + ' within your deadline time.');
@@ -357,10 +482,83 @@
 
   // --- formatting ---
   function fmt(sec){
-    sec = Math.max(0, sec);
+    sec = Math.max(0, Math.round(sec));
     const m = Math.floor(sec/60);
     const s = sec % 60;
     return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  }
+
+  // --- timer engine (timestamp based) ---
+  function processTimer(){
+    const t = tasks.find(x => x.id === activeId);
+    if (!t || !t.running) return;
+
+    const now = Date.now();
+    if (lastTickTime === null) {
+      lastTickTime = now;
+      return;
+    }
+
+    const elapsed = (now - lastTickTime) / 1000;
+    lastTickTime = now;
+
+    if (elapsed <= 0) return;
+
+    const oldRemaining = t.remaining;
+    const newRemaining = Math.max(0, t.remaining - elapsed);
+    t.remaining = newRemaining;
+
+    // Check for notifications that might have been missed
+    checkNotifications(t, oldRemaining, newRemaining);
+
+    if (t.remaining <= 0) {
+      t.remaining = 0;
+      t.running = false;
+      t.done = true;
+      timerRunning = false;
+      stopInterval();
+      playCompleteSound();
+      speak(`Task ${t.name} completed! Well done.`);
+      activeId = null;
+      extraMinutesUsed = 0;
+    }
+
+    render();
+  }
+
+  function checkNotifications(t, oldRemaining, newRemaining){
+    const halfway = Math.floor(t.total / 2);
+    
+    // Check halfway (we crossed the halfway point)
+    if (oldRemaining > halfway && newRemaining <= halfway && halfway > 0 && !t.halfwayAnnounced) {
+      t.halfwayAnnounced = true;
+      playHalfwaySound(t.name);
+    }
+
+    // Check 5-minute warning (we crossed 5 minutes)
+    if (oldRemaining > 300 && newRemaining <= 300 && !t.warned) {
+      t.warned = true;
+      playWarningSound();
+    }
+  }
+
+  function tick(){
+    processTimer();
+  }
+
+  function startInterval(){
+    stopInterval();
+    lastTickTime = Date.now();
+    timerRunning = true;
+    intervalHandle = setInterval(tick, 500);
+  }
+
+  function stopInterval(){
+    if (intervalHandle){ 
+      clearInterval(intervalHandle); 
+      intervalHandle = null; 
+    }
+    timerRunning = false;
   }
 
   // --- render ---
@@ -374,7 +572,6 @@
       el.heroName.textContent = active.name;
       el.heroTime.textContent = fmt(active.remaining);
       el.pauseBtn.textContent = active.running ? 'Pause' : 'Resume';
-      // extra minutes counter
       const used = active.extraMinutesAdded || 0;
       el.extraCounter.textContent = used >= 15 ? 'max +15 min' : (used > 0 ? `+${used} min` : '');
     } else {
@@ -382,53 +579,85 @@
       el.extraCounter.textContent = '';
     }
 
-    // list
+    // Update stats
+    const completedCount = tasks.filter(t => t.done).length;
+    const totalSaved = getTotalSavedTime();
+    el.doneCount.textContent = completedCount;
+    el.savedTime.textContent = formatTime(totalSaved);
+
+    // list - sorted with active on top, completed at bottom
+    const sorted = getSortedTasks();
     el.taskList.innerHTML = '';
     el.emptyState.style.display = tasks.length ? 'none' : 'block';
 
-    tasks.forEach(t => {
+    sorted.forEach(t => {
       const row = document.createElement('div');
       row.className = 'task-row' + (t.done ? ' done' : '');
+      row.dataset.taskId = t.id;
+      row.draggable = !t.done;
 
       const main = document.createElement('div');
       main.className = 'task-main';
+
+      // Drag handle
+      const handle = document.createElement('span');
+      handle.className = 'drag-handle';
+      handle.textContent = '⠿';
+      handle.title = 'Drag to reorder';
+      if (!t.done) {
+        main.appendChild(handle);
+      }
+
+      const content = document.createElement('div');
+      content.className = 'task-content';
+      
       const name = document.createElement('div');
       name.className = 'task-name';
       name.textContent = t.name;
+      
       const meta = document.createElement('div');
       meta.className = 'task-meta' + (t.id === activeId ? ' is-active' : '');
       if (t.done) {
-        meta.textContent = `Done ✅ · saved ${fmt(t.total - t.remaining)}`;
+        const saved = Math.max(0, t.total - t.remaining);
+        meta.textContent = `Done ✅ · saved ${fmt(saved)}`;
       } else {
         meta.textContent = fmt(t.remaining) + ' remaining of ' + fmt(t.total);
       }
-      main.appendChild(name);
-      main.appendChild(meta);
+      
+      content.appendChild(name);
+      content.appendChild(meta);
+      main.appendChild(content);
 
       const actions = document.createElement('div');
       actions.className = 'task-actions';
 
       if (!t.done){
-        // start button
         const startBtn = document.createElement('button');
         startBtn.className = 'small' + (t.id === activeId ? ' primary' : '');
         startBtn.textContent = t.id === activeId ? (t.running ? 'Running' : 'Resume') : 'Start';
-        startBtn.onclick = () => startTask(t.id);
+        startBtn.onclick = (e) => {
+          e.stopPropagation();
+          startTask(t.id);
+        };
         actions.appendChild(startBtn);
 
-        // "Done" button: mark as complete, save time
         const doneBtn = document.createElement('button');
         doneBtn.className = 'small done-btn';
         doneBtn.textContent = '✔ Done';
-        doneBtn.onclick = () => completeTask(t.id);
+        doneBtn.onclick = (e) => {
+          e.stopPropagation();
+          completeTask(t.id);
+        };
         actions.appendChild(doneBtn);
 
-        // +5 min (only for active task)
         if (t.id === activeId && active) {
           const addBtn = document.createElement('button');
           addBtn.className = 'small';
           addBtn.textContent = '+5m';
-          addBtn.onclick = () => addFiveMinutes(t.id);
+          addBtn.onclick = (e) => {
+            e.stopPropagation();
+            addFiveMinutes(t.id);
+          };
           actions.appendChild(addBtn);
         }
       }
@@ -436,73 +665,144 @@
       const resetBtn = document.createElement('button');
       resetBtn.className = 'small ghost';
       resetBtn.textContent = 'Reset';
-      resetBtn.onclick = () => resetTask(t.id);
+      resetBtn.onclick = (e) => {
+        e.stopPropagation();
+        resetTask(t.id);
+      };
       actions.appendChild(resetBtn);
 
       const delBtn = document.createElement('button');
       delBtn.className = 'small ghost';
       delBtn.textContent = 'Delete';
-      delBtn.onclick = () => deleteTask(t.id);
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        deleteTask(t.id);
+      };
       actions.appendChild(delBtn);
 
       row.appendChild(main);
       row.appendChild(actions);
+
+      // Drag events - only if not done
+      if (!t.done) {
+        row.addEventListener('dragstart', handleDragStart);
+        row.addEventListener('dragend', handleDragEnd);
+        row.addEventListener('dragover', handleDragOver);
+        row.addEventListener('dragenter', handleDragEnter);
+        row.addEventListener('dragleave', handleDragLeave);
+        row.addEventListener('drop', handleDrop);
+      }
+
       el.taskList.appendChild(row);
     });
 
-    el.doneCount.textContent = tasks.filter(t => t.done).length;
     save();
   }
 
-  // --- timer engine ---
-  function tick(){
-    const t = tasks.find(x => x.id === activeId);
-    if (!t || !t.running) return;
-
-    t.remaining -= 1;
-
-    const halfway = Math.floor(t.total / 2);
-    if (t.remaining === halfway && halfway > 0 && !t.halfwayAnnounced){
-      t.halfwayAnnounced = true;
-      playHalfwaySound(t.name);
+  // --- Drag and drop ---
+  function handleDragStart(e) {
+    const row = e.target.closest('.task-row');
+    if (!row) return;
+    const id = row.dataset.taskId;
+    const task = tasks.find(t => t.id === id);
+    if (task && task.done) {
+      e.preventDefault();
+      return;
     }
+    isDragging = true;
+    draggedId = id;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', id);
+  }
 
-    if (t.remaining === 300 && !t.warned){
-      t.warned = true;
-      playWarningSound();
+  function handleDragEnd(e) {
+    const row = e.target.closest('.task-row');
+    if (row) row.classList.remove('dragging');
+    document.querySelectorAll('.task-row').forEach(r => r.classList.remove('drag-over'));
+    isDragging = false;
+    draggedId = null;
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const row = e.target.closest('.task-row');
+    if (row) {
+      row.classList.add('drag-over');
     }
+  }
 
-    if (t.remaining <= 0){
-      t.remaining = 0;
-      t.running = false;
-      t.done = true;
-      stopInterval();
-      playCompleteSound();
-      activeId = null;
-      extraMinutesUsed = 0;
+  function handleDragEnter(e) {
+    e.preventDefault();
+  }
+
+  function handleDragLeave(e) {
+    const row = e.target.closest('.task-row');
+    if (row) {
+      row.classList.remove('drag-over');
     }
+  }
 
+  function handleDrop(e) {
+    e.preventDefault();
+    const row = e.target.closest('.task-row');
+    if (!row) return;
+    row.classList.remove('drag-over');
+    
+    const targetId = row.dataset.taskId;
+    if (!draggedId || draggedId === targetId) return;
+
+    const draggedTask = tasks.find(t => t.id === draggedId);
+    const targetTask = tasks.find(t => t.id === targetId);
+    
+    if (!draggedTask || !targetTask || draggedTask.done || targetTask.done) return;
+
+    // Don't allow dragging active task
+    if (draggedTask.id === activeId || targetTask.id === activeId) return;
+
+    // Get current order
+    const sorted = [...tasks].filter(t => !t.done).sort((a, b) => (a.order || 0) - (b.order || 0));
+    const dragIndex = sorted.findIndex(t => t.id === draggedId);
+    const targetIndex = sorted.findIndex(t => t.id === targetId);
+    
+    if (dragIndex === -1 || targetIndex === -1) return;
+
+    // Remove dragged item from array
+    sorted.splice(dragIndex, 1);
+    // Insert at target position
+    sorted.splice(targetIndex, 0, draggedTask);
+
+    // Update orders
+    sorted.forEach((t, i) => {
+      t.order = i;
+    });
+
+    draggedId = null;
+    isDragging = false;
     render();
   }
 
-  function startInterval(){
-    stopInterval();
-    intervalHandle = setInterval(tick, 1000);
-  }
-  function stopInterval(){
-    if (intervalHandle){ clearInterval(intervalHandle); intervalHandle = null; }
-  }
-
+  // --- Task actions ---
   function startTask(id){
-    tasks.forEach(t => { if (t.id !== id) t.running = false; });
     const t = tasks.find(x => x.id === id);
     if (!t || t.done) return;
-    // reset extra minutes counter when switching task
+    
+    // Pause all others
+    tasks.forEach(task => { 
+      if (task.id !== id) task.running = false; 
+    });
+    
     if (activeId !== id) {
       extraMinutesUsed = 0;
+      // Reset notification flags when switching tasks
+      t.warned = false;
+      t.halfwayAnnounced = false;
     }
+    
     t.running = true;
     activeId = id;
+    lastTickTime = Date.now();
     startInterval();
     render();
   }
@@ -511,7 +811,12 @@
     const t = tasks.find(x => x.id === activeId);
     if (!t) return;
     t.running = !t.running;
-    if (t.running) startInterval(); else stopInterval();
+    if (t.running) {
+      lastTickTime = Date.now();
+      startInterval();
+    } else {
+      stopInterval();
+    }
     render();
   }
 
@@ -523,17 +828,30 @@
     t.warned = false;
     t.halfwayAnnounced = false;
     t.extraMinutesAdded = 0;
-    if (t.id === activeId){ t.running = false; stopInterval(); activeId = null; extraMinutesUsed = 0; }
+    if (t.id === activeId){ 
+      t.running = false; 
+      stopInterval(); 
+      activeId = null; 
+      extraMinutesUsed = 0;
+      timerRunning = false;
+    }
     render();
   }
 
   function deleteTask(id){
-    if (id === activeId){ stopInterval(); activeId = null; extraMinutesUsed = 0; }
+    if (id === activeId){ 
+      stopInterval(); 
+      activeId = null; 
+      extraMinutesUsed = 0;
+      timerRunning = false;
+    }
     tasks = tasks.filter(t => t.id !== id);
+    // Reorder remaining active tasks
+    const activeTasks = tasks.filter(t => !t.done).sort((a, b) => (a.order || 0) - (b.order || 0));
+    activeTasks.forEach((t, i) => { t.order = i; });
     render();
   }
 
-  // --- complete task (done) ---
   function completeTask(id){
     const t = tasks.find(x => x.id === id);
     if (!t || t.done) return;
@@ -543,11 +861,11 @@
       stopInterval();
       activeId = null;
       extraMinutesUsed = 0;
+      timerRunning = false;
     }
-    // speech: announce saved time
-    const saved = t.total - t.remaining;
+    const saved = Math.max(0, t.total - t.remaining);
     const savedMin = Math.floor(saved / 60);
-    const savedSec = saved % 60;
+    const savedSec = Math.round(saved % 60);
     let msg = `Task ${t.name} completed. You saved `;
     if (savedMin > 0) msg += `${savedMin} minute${savedMin>1?'s':''} `;
     if (savedSec > 0) msg += `${savedSec} second${savedSec>1?'s':''}`;
@@ -556,11 +874,10 @@
     render();
   }
 
-  // --- +5 minutes (max +15 total per task) ---
   function addFiveMinutes(id){
     const t = tasks.find(x => x.id === id);
     if (!t || t.done) return;
-    if (t.id !== activeId) return; // only for active task
+    if (t.id !== activeId) return;
     const used = t.extraMinutesAdded || 0;
     if (used >= 15) {
       speak('Maximum extra time reached. You cannot add more than 15 minutes.');
@@ -573,7 +890,6 @@
     t.total += actualAdd * 60;
     t.extraMinutesAdded = newUsed;
     extraMinutesUsed = newUsed;
-    // speech feedback
     speak(`Added ${actualAdd} minutes. Total extra ${newUsed} minutes.`);
     render();
   }
@@ -587,6 +903,10 @@
     const total = Math.max(1, min*60 + sec);
     if (!name) return;
 
+    // Find max order among active tasks (not done)
+    const activeTasks = tasks.filter(t => !t.done);
+    const maxOrder = activeTasks.reduce((max, t) => Math.max(max, t.order || 0), -1);
+    
     tasks.push({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
       name: name,
@@ -596,7 +916,8 @@
       done: false,
       warned: false,
       halfwayAnnounced: false,
-      extraMinutesAdded: 0
+      extraMinutesAdded: 0,
+      order: maxOrder + 1
     });
 
     el.taskName.value = '';
@@ -613,14 +934,26 @@
     if (activeId) addFiveMinutes(activeId);
   });
 
+  // --- Visibility API: resume timer when tab becomes visible ---
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && timerRunning) {
+      const t = tasks.find(x => x.id === activeId);
+      if (t && t.running) {
+        lastTickTime = Date.now();
+        processTimer();
+      }
+    }
+  });
+
   // --- init ---
   load();
   const wasRunning = tasks.find(t => t.running);
   if (wasRunning){
     activeId = wasRunning.id;
+    lastTickTime = Date.now();
     startInterval();
-    // restore extra counter
     extraMinutesUsed = wasRunning.extraMinutesAdded || 0;
+    timerRunning = true;
   }
   render();
 })();
