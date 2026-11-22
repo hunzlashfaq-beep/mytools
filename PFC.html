@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#101b2d" />
-<title>My Money Plan - Income Calculator</title>
+<title>My Money Plan — Income Calculator</title>
 <style>
   :root{--bg:#f3f6fb;--card:#fff;--ink:#172338;--muted:#718096;--line:#e7edf5;--navy:#14243b;--teal:#19a88b;--teal-soft:#e6f7f2;--blue:#4c78d0;--orange:#e59b45;--purple:#8b70d6;--rose:#d87583;--shadow:0 14px 40px rgba(25,42,70,.08)}
   *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -22,7 +22,7 @@
 <body>
 <div class="app">
   <header class="hero">
-    <div><div class="eyebrow">Your money, with a plan</div><h1>My Monthly Money Plan</h1><p>Plan your Income, clear your loan, build a safety net and save for your future business -  one month at a time.</p></div>
+    <div><div class="eyebrow">Your money, with a plan</div><h1>My Monthly Money Plan</h1><p>Plan your Income, clear your loan, build a safety net and save for your future business - one month at a time.</p></div>
     <div class="hero-mark" aria-hidden="true">✦</div>
   </header>
 
@@ -30,11 +30,11 @@
     <section class="card">
       <h2>1. Your income & loan</h2><p class="sub">Enter your monthly Income and remaining loan. The calculator selects the budget automatically.</p>
       <div class="field-grid">
-        <div class="field"><label for="Income">Monthly Income (PKR)</label><input id="Income" type="number" min="0" step="100" value="150000 " inputmode="decimal"><div class="hint">Your take-home monthly income</div></div>
-        <div class="field"><label for="loan">Remaining loan (PKR)</label><input id="loan" type="number" min="0" step="100" value="20000" inputmode="decimal"><div class="hint">Enter 0 when your loan is fully paid</div></div>
+        <div class="field"><label for="Income">Monthly Income (PKR)</label><input id="Income" type="number" min="0" step="100" value="150000" inputmode="decimal"><div class="hint">Your take-home monthly income</div></div>
+        <div class="field"><label for="loan">Remaining loan (PKR)</label><input id="loan" type="number" min="0" step="100" value="0" inputmode="decimal"><div class="hint">Enter 0 when your loan is fully paid</div></div>
       </div>
       <div class="mode"><div><strong>Budget mode</strong><div class="hint" id="modeHint">Loan repayment plan is active</div></div><span class="pill active" id="modePill">LOAN MODE</span></div>
-      <div class="allocation-head"><h3>2. Adjust your allocations</h3><span>Change any % -  amounts update instantly</span></div>
+      <div class="allocation-head"><h3>2. Adjust your allocations</h3><span>Change any % — amounts update instantly</span></div>
       <div class="rows" id="budgetRows"></div>
       <div class="actions"><button class="btn btn-light" id="resetBtn" type="button">↺ Reset default percentages</button><button class="btn btn-primary" id="copyBtn" type="button">Copy budget summary</button></div>
       <p class="footer-note">All allocations are based on your entered Income. Unexpected Fund is allocated from Personal Needs: 1% while in debt, 2.5% when debt-free. Keep the total at 100%.</p>
@@ -51,7 +51,16 @@
         <div class="balance-line"><span>Unallocated money</span><b id="remainingMoney">Rs. 0</b></div>
         <div class="status good" id="budgetStatus">✓ Your budget is balanced</div>
       </div>
-      <div class="tip"><b>Keep your funds separate</b>Emergency Fund = major crisis. Unexpected Fund = small surprises like bike repairs or a fine. Business Savings = money reserved for your business plan.<br><br><b>Unexpected Fund suggestion</b>Loan موجود ہو تو تنخواہ کا 1%، اور قرض ختم ہونے کے بعد 2–3% (default 2.5%)۔ یہ رقم Personal Needs میں سے منتقل کی گئی ہے، اضافی خرچ نہیں۔ چھوٹا اچانک خرچہ پہلے اسی فنڈ سے ادا کریں۔</div>
+      <div class="tip"><b>Keep your funds separate</b>Emergency Fund = major crisis. <br>Unexpected Fund = small surprises like bike repairs or a fine. <br>Business Savings = money reserved for your business plan.<br><br>
+        <b>Unexpected Fund suggestion</b>
+<div dir="rtl" lang="ur" style="text-align:right; line-height:1.9;">
+  <ul style="list-style-position:inside; margin:6px 0 0; padding:0;">
+    <li>قرض موجود ہو تو تنخواہ کا 1% رکھیں۔</li>
+    <li>قرض ختم ہونے کے بعد 2–3% رکھیں (default: 2.5%)۔</li>
+    <li>یہ رقم Personal Needs میں سے منتقل کی گئی ہے، اس لیے یہ اضافی خرچ نہیں۔</li>
+    <li>کوئی چھوٹا اچانک خرچہ آئے تو پہلے اسی فنڈ سے ادا کریں۔</li>
+  </ul>
+</div>
       <div class="statline"><span>Loan balance after this month's payment*</span><strong id="loanAfter">Rs. 12,000</strong></div>
       <div class="hint">*Estimate assumes the full planned loan allocation is paid this month. It does not include interest or fees.</div>
     </aside>
@@ -79,7 +88,7 @@
     {id:'loan',name:'Loan repayment',urdu:'قرض کی واپسی',color:'#e59b45',loanOnly:true},
     {id:'emergency',name:'Emergency Fund',urdu:'بڑے ہنگامی حالات کے لیے',color:'#19a88b'},
     {id:'business',name:'Business Savings',urdu:'اپنے کاروبار کے لیے',color:'#8b70d6'},
-    {id:'unexpected',name:'Unexpected Fund',urdu:'چھوٹے اچانک خرچے: bike, fine, repair -  قرض ہو: 1% | قرض ختم: 2.5%',color:'#d87583'},
+    {id:'unexpected',name:'Unexpected Fund',urdu:'چھوٹے اچانک خرچے: bike, fine, repair — قرض ہو: 1% | قرض ختم: 2.5%',color:'#d87583'},
     {id:'needs',name:'Personal needs',urdu:'ذاتی ضروریات',color:'#a0a9b8'}
   ];
   const $ = id => document.getElementById(id);
@@ -118,7 +127,7 @@
   function update(){
     const Income=num('Income'), loan=num('loan'), loanMode=loan>0;
     $('modePill').textContent=loanMode?'LOAN MODE':'DEBT-FREE MODE';
-    $('modeHint').textContent=loanMode?'Loan repayment plan is active':'Your loan is cleared -  focus on saving';
+    $('modeHint').textContent=loanMode?'Loan repayment plan is active':'Your loan is cleared focus on saving';
     $('modePill').classList.toggle('active',true);
     $('IncomeDisplay').textContent=fmt(Income);
     const rows=activeCategories();
@@ -146,7 +155,7 @@
   $('resetBtn').addEventListener('click',()=>{defaults();renderRows();update();});
   $('copyBtn').addEventListener('click',async()=>{
     const Income=num('Income');
-    const lines=[`Monthly Income: ${fmt(Income)}`,`Loan balance: ${fmt(num('loan'))}`,`Mode: ${isLoan()?'Loan':'Debt-free'}`,...activeCategories().map(c=>`${c.name}: ${Number(allocations[c.id]||0).toFixed(4)}% -  ${fmt(Income*Number(allocations[c.id]||0)/100)}`)];
+    const lines=[`Monthly Income: ${fmt(Income)}`,`Loan balance: ${fmt(num('loan'))}`,`Mode: ${isLoan()?'Loan':'Debt-free'}`,...activeCategories().map(c=>`${c.name}: ${Number(allocations[c.id]||0).toFixed(4)}% — ${fmt(Income*Number(allocations[c.id]||0)/100)}`)];
     const total=activeCategories().reduce((s,c)=>s+Number(allocations[c.id]||0),0);
     lines.push(`Total allocated: ${total.toFixed(4)}%`);
     try{await navigator.clipboard.writeText(lines.join('\n'));$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1700);}catch(e){window.prompt('Copy your budget:',lines.join('\n'));}
